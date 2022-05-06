@@ -1,35 +1,78 @@
-function transport_num_CN(c_arr,Disp, sep_vel, dx_CN, dt_CN, nX, c_in, A_cn, b_cn, k){
-  // Coefficients
-  var p1 = Disp*dt_CN/dx_CN**2
-  var p2 = sep_vel*dt_CN/(4*dx_CN)
-  var p3 = sep_vel*dx_CN/Disp
-  // First order reaction coefficient
-  var p4 = k * dt_CN / 2
-
-  for (let i = 0; i < nX; i++) {
-    // Left hand side matrix A_CN
-    if (i > 0 && i < nX-1) { // internal cells
-      A_cn[i][i-1]  = -p1/2-p2
-      A_cn[i][i]    = 1+p1+p4
-      A_cn[i][i+1]  = -p1/2+p2
-    } else if (i == 0) { // inflow cell 
-      A_cn[i][i]    = p1*p3 + 2*p2*p3 + 1 + p1 +p4
-      A_cn[i][i+1]  = -p1
-    } else if (i == nX-1) { // outflow cell
-      A_cn[i][i-1]  = -p1 - p1*p3 - 2*p2*p3
-      A_cn[i][i]    = 1 + p1 + p1*p3 - 2*p2*p3 + p4
-    }
-    // Right hand side vector --> produces NaNs atm after 4 entries
-    if (i > 0 && i < nX-1 && 1==1) { // internal cells
-      b_cn[i]   = (p1/2+p2)*c_arr[i-1] + (1-p1-p4)*c_arr[i] + (p1/2-p2)*c_arr[i+1]
-    } else if (i == 0) { // inflow cell
-      b_cn[i]    = (-p1*p3 - 2*p2*p3 + 1 - p1 - p4)*c_arr[i] + p1*c_arr[i+1] + 2*(p1*p3 + 2*p2*p3)* c_in
-    } else if (i == nX-1) { // outflow cell
-      b_cn[i]    = (p1 + p1*p3 - 2*p2*p3)*c_arr[i-1] + (1 - p1 - p1*p3 + 2*p2*p3 - p4) *c_arr[i]
-    }
+function transport(c_arr,c_in){
+  // Move concentrations by one cell (Cr == 1)
+  for (let i = 0; i < c_arr.length; i++){
+    c_arr[c_arr.length-i-1] = c_arr[c_arr.length-i-2]
   }
-  const res = math.lusolve(A_cn,b_cn)
-  return res
+  // Assign inlet concentration to first cell
+  c_arr[0] = c_in
+
+  return c_arr
+}
+
+function reactive_dispersion_fully_implicit(c_arr,Disp, dx_CN, dt_CN, nX,  A_cn, b_cn, k, rf){
+  const dt_sub = dt_CN/rf
+  // Coefficient for dispersion
+  var p1 = Disp*dt_sub/dx_CN**2
+  // Coefficient for first order reaction
+  var p2 = k * dt_sub 
+
+  for (let i = 0; i < c_arr.length; i++) {
+    b_cn[i] = c_arr[i]
+  }
+
+  for (let j = 0; j < rf; j++) {
+    for (let i = 0; i < nX; i++) {
+      // Left hand side matrix A_CN
+      if (i > 0 && i < nX-1) { // internal cells
+        A_cn[i][i-1]  = - p1
+        A_cn[i][i]    = 1 + 2*p1
+        A_cn[i][i+1]  = - p1
+      } else if (i == 0) { // inflow cell 
+        A_cn[i][i]    = 1 + p1 
+        A_cn[i][i+1]  = - p1
+      } else if (i == nX-1) { // outflow cell
+        A_cn[i][i-1]  = - p1 
+        A_cn[i][i]    = 1 + p1 
+      }
+    }
+    c_arr = math.lusolve(A_cn,b_cn)
+  }
+  return c_arr
+}
+
+function reactive_dispersion(c_arr,Disp, dx_CN, dt_CN, nX, A_cn, b_cn, k, rf){
+  const dt_sub = dt_CN/rf
+  // Coefficient for dispersion
+  var p1 = Disp*dt_sub/dx_CN**2
+  // Coefficient for first order reaction
+  var p2 = k * dt_sub 
+
+  for (let j = 0; j < rf; j++) {
+    for (let i = 0; i < nX; i++) {
+      // Left hand side matrix A_CN
+      if (i > 0 && i < nX-1) { // internal cells
+        A_cn[i][i-1]  = - p1/2
+        A_cn[i][i]    = 1 + p1
+        A_cn[i][i+1]  = - p1/2
+      } else if (i == 0) { // inflow cell 
+        A_cn[i][i]    = 1 + p1/2 
+        A_cn[i][i+1]  = - p1/2
+      } else if (i == nX-1) { // outflow cell
+        A_cn[i][i-1]  = - p1/2 
+        A_cn[i][i]    = 1 + p1/2 
+      }
+      // Right hand side vector 
+      if (i > 0 && i < nX-1) { // internal cells
+        b_cn[i]   = p1/2*c_arr[i-1] + (1-p1)* c_arr[i] + p1/2*c_arr[i+1]
+      } else if (i == 0) { // inflow cell
+        b_cn[i]    = (1-p1/2)*c_arr[i] + p1/2*c_arr[i+1]
+      } else if (i == nX-1) { // outflow cell
+        b_cn[i]    = (1-p1/2)*c_arr[i] + p1/2*c_arr[i-1]
+      }
+    }
+    c_arr = math.lusolve(A_cn,b_cn)
+  }
+  return c_arr
 }
 
 function total_conc(c,rg_SType,sorbed,rho_s,poros,K_Fr,Fr_n) {
@@ -63,10 +106,8 @@ var rg_SType  = rg_ST.active                      // [0]
 // Values needed for all models
 const col_len   = col_len_sl.value;                 // [m]
 const rad       = col_rad_sl.value;                 // [m]
-const reac_l    = Math.exp(reac_sl.value[0])/3600;  // [1/s]
-const reac_h    = Math.exp(reac_sl.value[1])/3600;  // [1/s]
-const disp_l    = Math.exp(disp_sl.value[0])/3600;  // [m2/s]
-const disp_h    = Math.exp(disp_sl.value[1])/3600;  // [m2/s]
+const reac      = Math.exp(reac_sl.value)/3600;     // [1/s]
+const Dis       = Math.exp(disp_sl.value)/3600;     // [m2/s]
 const Q         = flow_sl.value/1000/1000/3600;     // [m3/s]
 const poros     = poros_sl.value;                   // [-]
 const t_inj     = pulse_inj_sl.value                // [s]
@@ -82,14 +123,14 @@ const Fr_n      = Fr_n_sl.value                     // [-]
 const A       = math.PI * rad**2;             // [m2]
 const vel     = Q/A;                          // [m/s]
 const sep_vel = vel / poros                   // [m/s]
-const reac    = (reac_l + reac_h)/2           // [1/s] 
-const Dis     = (disp_l + disp_h)/2           // [m2/s]  
 const PS      = col_len * A * poros           // [m3]
 const PV      = col_len/sep_vel               // [s] VEL oder SEP_VEL?
 const c0      = 1;                            // [-] 
 const nX      = x.length                      // [-]
 const dx_CN   = col_len/nX                    // [m]
 const dt_CN   = dx_CN / sep_vel               // [s]
+const Ne      = 4* Dis / sep_vel / dx_CN 	    // [-]
+const rf      = math.ceil(Ne)
 const t_end   = PV * (x2[x2.length-1])        // [s]
 const nT      = math.floor(t_end/dt_CN)       // [-]
 
@@ -117,11 +158,13 @@ console.log("Crank - Nicholson: \n"
               +"Dispersion Coefficient is "+ Dis + " m2/s\n"
               +"There are " + nX + " spatial nodes\n"
               +"There are " + t_end/dt_CN + " temporal nodes\n"
-              +"The Courant Number equals " + dt_CN * sep_vel /dx_CN
+              +"The Neumann Number is equal to " + Ne/4 +"\n"
+              +"The refinement factor is " + rf +"\n"
+              +"The Courant Number equals " + dt_CN * sep_vel /dx_CN 
   )
 
 
-for (let i = 0; i < 50; i++) {  //needs to be nT
+for (let i = 0; i < 4; i++) {  //needs to be nT
   // Set inlet concentration 
   if (rg_CP == 0) {
       var c_in = c0
@@ -132,11 +175,15 @@ for (let i = 0; i < 50; i++) {  //needs to be nT
   }
 
   // Transport
-  // Transport with Crank Nicholson scheme
-  var c_array = transport_num_CN(c_array,Dis,sep_vel,dx_CN,dt_CN,nX,c_in,A_CN,B_CN,reac)
+  var c_array = transport(c_array,c_in)
+
+  // Reactive Dispersion with Crank Nicholson scheme rf times
+  if (1==1) {
+  var c_array = reactive_dispersion(c_array,Dis,dx_CN,dt_CN,nX,A_CN,B_CN,reac,rf)
+  }
 
   // Sorption
-  if (1 == 1) {
+  if (1 == 2) {
   if (rg_SType == 0) { // Linear Sorption
       var c_tot_lin = total_conc(c_array,rg_SType,s_array,rho_s,poros)
       for (let j = 0; j < c_array.length; j++) {
@@ -178,4 +225,3 @@ for (let i = 0; i < 50; i++) {  //needs to be nT
 }
 
 console.log(c_tot_array)
-
