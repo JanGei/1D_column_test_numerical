@@ -71,12 +71,16 @@
 <body>
   <div class="content" style="width: 90%; margin:auto; min-width: 400px; max-width: 1500px;">
     <div class="side" style="flex: 3; border-bottom: 2px dashed #262626;">
-      This model solves a 1-D transport problem, representative of a column experiment. The compound is subject to advection, dispersion and reaction. The normed concentration distribution is given by: <br>
+      This numerical model solves a 1-D transport problem, representative of a column experiment. The compound is subject to advection, dispersion, sorption and reaction. 
+      The model employes a fully implicit Crank-Nicholson scheme to compute reactive and dispersive processes:<br>
       <div style="text-align: center;">
         <div style=" border: solid 2px black; display: inline-block">
-          \( \frac{c(x, t)}{c_0} = \frac{1}{2} \mathrm{exp}(\frac{xv}{2D}) \Big( \mathrm{exp}(-\frac{xv\gamma}{2D}) \mathrm{erfc}\Big(\frac{x - vt\gamma}{\sqrt{4Dt}}\Big) +  \mathrm{exp}(\frac{xv\gamma}{2D}) \mathrm{erfc}\Big(\frac{x + vt\gamma}{\sqrt{4Dt}}\Big) \Big) \)
+          Top Cell: \( (-s) c_{2}^{k+1} + (1 +s + r) c_{1}^{k+1} =  c_{1}^{k} \) <br>
+          Internal Cells: \( (-s) c_{i-1}^{k+1} + (1 +s + r) c_{i}^{k+1} + (-s) c_{i+1}^{k} = c_{i}^{k}  \) <br>
+          Bottom Cell: \( (-s) c_{N-1}^{k+1} + (1 +s + r) c_{N}^{k+1} = c_{N}^{k} \) 
         </div>
       </div>
+      With s = \( \frac{D * dt}{dx^2} \) and r = \( \lambda *dt \), dispersion coefficient D, first-order rate constant \( \lambda \), time step dt, distance between cells dx, number of cells N, index of cell i and timestep k
     </div>
     <div class="row">
       <div class="main" style="flex: 7">

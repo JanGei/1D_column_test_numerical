@@ -20,7 +20,7 @@ os.chdir(os.path.dirname(sys.argv[0]))
 
 # Initial slider parameters (min, max, step, value)
 # Pore Volume [-]
-pore_vol  = [0, 7, 7/700 , 0.5] #THIS IS HARDCODED
+pore_vol  = [0, 7, 7/700, 0.5] #THIS IS HARDCODED
 # Column radius [m]
 col_rad   = [0.005, 0.2, 0.0001, 0.05]
 # Flow rate [ml/h]
@@ -34,7 +34,7 @@ col_len   = [0.01, 0.5, 0.001, 0.2]
 # Dispersion coefficient [ln(m2/h)]
 disp      = [np.log(1e-6), np.log(1e-1), (np.log(1e-1)-np.log(1e-6))/300, np.log(1e-5)]
 # First order reaction coefficient [ln(1/h)]
-reac      = [np.log(1e-4), np.log(1), (np.log(1)-np.log(1e-4))/300, np.log(1e-3)]
+reac      = [np.log(1e-4), np.log(1), (np.log(1)-np.log(1e-4))/300, np.log(1e-2)]
 
 # Initial slider parameter (min, max, step, value) for sorption
 # Solid densitiy [kg/m3]
@@ -94,7 +94,7 @@ x           = np.linspace(0,col_len[3],nX)
 # Subdividing the duration of the experiment into nT equally long parts
 PVspan      = np.linspace(pore_vol[0],pore_vol[1],nT)
 
-c_tot_array = np.loadtxt("Initial_Data.csv", delimiter = ";", dtype= float)
+c_tot_array = np.loadtxt("Initial_Data_reaction2.csv", delimiter = ";", dtype= float)
 
 # index of closest time 
 idx_x = (np.abs(PVspan - pore_vol[3])).argmin()
@@ -106,6 +106,7 @@ c_t = c_tot_array[idx_t,:]
 source1 = ColumnDataSource(data = dict(x = x, y = c_x))
 source2 = ColumnDataSource(data = dict(x2=PVspan, y2=c_t))
 source3 = ColumnDataSource(data = dict(xBTC = [col_len[3]/2], yBTC = [0]))
+sourcetot = ColumnDataSource(data = dict(c_tot_array = c_tot_array))
 
 # Concentrtation Plot
 COLp = Figure(min_height = 400, y_axis_label='c(t)/c0',
@@ -127,7 +128,7 @@ BTCp = Figure(min_height = 400, y_axis_label='c(t)/c0',
             x_axis_label='Pore Volume',sizing_mode="stretch_both")
 BTCp.line('x2', 'y2', source = source2, line_width = 3, line_alpha = 0.6, line_color = 'red')
 BTCp.y_range = Range1d(0, 1.05)
-BTCp.x_range = Range1d(0, 7)
+BTCp.x_range = Range1d(0, pore_vol[1])
 BTCp.title = "Breakthrough Curve at x = 0.100 m (Drag diamond in upper plot to change)"
 BTCp.xaxis.axis_label_text_font_size = "17pt"
 BTCp.yaxis.axis_label_text_font_size = "17pt"
@@ -177,11 +178,11 @@ computebutton = Button(label="Compute Numerical Model", button_type="success",si
 with open ('callback_compute_numerical.js', 'r') as file2:
   cbCode_numerical = file2.read()
 callback_compute_numerical = CustomJS(args=dict(
-                            source1 = source1,
-                            source2 = source2,
-                            source3 = source3,
-                            timestep_sl = timestep_sl,
+                            sourcetot = sourcetot,
+                            PVspan = pore_vol[1],
                             col_len_sl = col_len_sl,
+                            timestep_sl = timestep_sl,
+                            nX = nX,
                             reac_sl = reac_sl,
                             disp_sl = disp_sl,
                             col_rad_sl = col_rad_sl,
@@ -206,10 +207,13 @@ computebutton.js_on_click(callback_compute_numerical)
 with open ('callback.js', 'r') as file1:
   cbCode = file1.read()
 callback = CustomJS(args=dict(
-                            source1=source1,
+                            source1 = source1,
                             source2 = source2,
                             source3 = source3,
                             c_tot = c_tot_array,
+                            nX = nX,
+                            nT = nT,
+                            sourcetot = sourcetot,
                             timestep_sl = timestep_sl,
                             col_len_sl = col_len_sl,
                             reac_sl = reac_sl,
@@ -247,6 +251,7 @@ flow_sl.js_on_change('value', callback)
 poros_sl.js_on_change('value', callback)
 pulse_inj_sl.js_on_change('value', callback)
 rg_CP.js_on_change('active',callback)
+rg_CP.js_on_click(callback)
 rg_ST.js_on_change('active',callback)
 # Make a button that needs to be pressed in order to compute numerical model?
 COLp.js_on_event(Tap, callback)

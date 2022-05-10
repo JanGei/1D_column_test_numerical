@@ -71,31 +71,35 @@
 <body>
   <div class="content" style="width: 90%; margin:auto; min-width: 400px; max-width: 1500px;">
     <div class="side" style="flex: 3; border-bottom: 2px dashed #262626;">
-      This model solves a 1-D transport problem, representative of a column experiment. The compound is subject to advection, dispersion and reaction. The normed concentration distribution is given by: <br>
+      This numerical model solves a 1-D transport problem, representative of a column experiment. The compound is subject to advection, dispersion, sorption and reaction. 
+      The model employes a fully implicit Crank-Nicholson scheme to compute reactive and dispersive processes:<br>
       <div style="text-align: center;">
         <div style=" border: solid 2px black; display: inline-block">
-          \( \frac{c(x, t)}{c_0} = \frac{1}{2} \mathrm{exp}(\frac{xv}{2D}) \Big( \mathrm{exp}(-\frac{xv\gamma}{2D}) \mathrm{erfc}\Big(\frac{x - vt\gamma}{\sqrt{4Dt}}\Big) +  \mathrm{exp}(\frac{xv\gamma}{2D}) \mathrm{erfc}\Big(\frac{x + vt\gamma}{\sqrt{4Dt}}\Big) \Big) \)
+          Top Cell: \( (-s) c_{2}^{k+1} + (1 +s + r) c_{1}^{k+1} =  c_{1}^{k} \) <br>
+          Internal Cells: \( (-s) c_{i-1}^{k+1} + (1 +s + r) c_{i}^{k+1} + (-s) c_{i+1}^{k} = c_{i}^{k}  \) <br>
+          Bottom Cell: \( (-s) c_{N-1}^{k+1} + (1 +s + r) c_{N}^{k+1} = c_{N}^{k} \) 
         </div>
       </div>
+      With s = \( \frac{D * dt}{dx^2} \) and r = \( \lambda *dt \), dispersion coefficient D, first-order rate constant \( \lambda \), time step dt, distance between cells dx, number of cells N, index of cell i and timestep k
     </div>
     <div class="row">
       <div class="main" style="flex: 7">
         
-<div class="bk-root" id="faa033dc-e9e0-434e-8751-c61b9df3bd95" data-root-id="1005"></div>
+<div class="bk-root" id="777f0eea-f4d3-4f10-9c64-fc14f1ca2144" data-root-id="1006"></div>
       </div>
       <div class="side" style="flex: 3; border-left: 2px solid #262626;">
         
-<div class="bk-root" id="471da8d3-40f8-46b0-a3cf-7e5cdf3d41b8" data-root-id="1143"></div>
+<div class="bk-root" id="6f83243f-e25a-4cde-8571-e098a95685e9" data-root-id="1144"></div>
       </div>
     </div>
     <div class="row">
       <div class="main" style="flex: 7; border-top: 2px dashed #262626;">
         
-<div class="bk-root" id="073ea1ea-d427-45f2-a3a3-17ad1f9ff126" data-root-id="1065"></div>
+<div class="bk-root" id="90dbd87e-2a72-4f50-a107-1b534a28c0c5" data-root-id="1066"></div>
       </div>
       <div class="side" style="flex: 3; border-left: 2px solid #262626;">
         
-<div class="bk-root" id="40ee2e21-4cc7-4f89-94a7-fa55272e0ba7" data-root-id="1144"></div>
+<div class="bk-root" id="1b3915bf-6576-429b-98bd-a2e5b0758e8f" data-root-id="1145"></div>
       </div>
     </div>
   </div>

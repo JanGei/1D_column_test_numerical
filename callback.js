@@ -6,11 +6,28 @@ var y2  = source2.data['y2']
 var x3  = source3.data['xBTC']
 var y3  = source3.data['yBTC']
 
+var c_tot_array = sourcetot.data.c_tot_array
+//console.log(c_tot_array) // this gives all values in a long list
+//console.log(c_tot)
+
+var c_tot     = Array(nX).fill(0)
+// Creating multi-dimensional arrays
+for (let i = 0; i < nT; i++) {
+  c_tot[i] = new Array(nX).fill(0)
+}
+
+// converting into nT entries in array per entry
+for (let i = 0; i < nX; i++) {
+  for (let j = 0; j < nT; j++) {
+    c_tot[i][j] = c_tot_array[(j + i*nT)]
+  }
+}
+
 const col_len   = col_len_sl.value;                 // [m]
 
 var rg_SType = rg_ST.active
-// array with the entire data
-//const c_tot = c_tot
+var rg_CPval = rg_CP.active
+
 // finding corresponding time and location for both plots
 var xBTC  = x3[0];   
 var tPV   = timestep_sl.value
@@ -42,7 +59,6 @@ for (let i = 0; i < x2.length; i++){
 // Update Sliders
 BTCp.title.text   = 'Breakthrough Curve at x = ' + xBTC.toFixed(3) + ' m (Drag diamond in upper plot to change)'
 
-
 // Change UI for numerical model -- Computation is preformed in different fiel
 // Make sorption type options visible
 
@@ -70,7 +86,7 @@ if (rg_SType == 0) {
 }
 
 
-if (rg_CP==0) {
+if (rg_CPval==0) {
   pulse_inj_sl.visible = false
 } else {
   pulse_inj_sl.visible = true

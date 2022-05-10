@@ -30,21 +30,21 @@ def transport(c,c_in):
 def reactive_dispersion(c_arr,Disp, dx, dt, nX, A_cn, b_cn, k, rf):
   dt_sub = dt / rf
   s = Disp*dt_sub/dx**2
-  r = k * dt_sub 
+  r = -k * dt_sub 
 
   for j in range(rf):
     for i in range(nX):
       # Left hand side matrix A_CN
       if (i > 0 and i < nX-1):
         A_cn[i][i-1]  = - s/2
-        A_cn[i][i]    = 1 + s
+        A_cn[i][i]    = 1 + s - r
         A_cn[i][i+1]  = - s/2
       elif (i == 0):
-        A_cn[i][i]    = 1 + s/2 
+        A_cn[i][i]    = 1 + s/2 - r
         A_cn[i][i+1]  = - s/2
       elif (i == nX-1):
         A_cn[i][i-1]  = - s/2 
-        A_cn[i][i]    = 1 + s/2 
+        A_cn[i][i]    = 1 + s/2 - r
       # Right hand side vector 
       if (i > 0 and i < nX-1):
         b_cn[i]   = s/2*c_arr[i-1] + (1-s)* c_arr[i] + s/2*c_arr[i+1]
@@ -54,6 +54,28 @@ def reactive_dispersion(c_arr,Disp, dx, dt, nX, A_cn, b_cn, k, rf):
         b_cn[i]    = (1-s/2)*c_arr[i] + s/2*c_arr[i-1]
 
   res = np.linalg.solve(A_cn,b_cn)
+  return res
+
+def reactive_dispersion_implicit(c_arr,Disp, dx, dt, nX, A_cn, k, rf):
+  dt_sub = dt / rf
+  s = Disp*dt_sub/dx**2
+  r = -k * dt_sub 
+
+  for j in range(rf):
+    for i in range(nX):
+      # Left hand side matrix A_CN
+      if (i > 0 and i < nX-1):
+        A_cn[i][i-1]  = - s
+        A_cn[i][i]    = 1 + 2*s - r
+        A_cn[i][i+1]  = - s
+      elif (i == 0):
+        A_cn[i][i]    = 1 + s - r
+        A_cn[i][i+1]  = - s
+      elif (i == nX-1):
+        A_cn[i][i-1]  = - s
+        A_cn[i][i]    = 1 + s - r
+
+  res = np.linalg.solve(A_cn,c_arr)
   return res
 
 # Initial slider parameters (min, max, step, value)
@@ -72,7 +94,7 @@ col_len   = [0.01, 0.5, 0.001, 0.2]
 # Dispersion coefficient [ln(m2/h)]
 disp      = [np.log(1e-6), np.log(1e-1), (np.log(1e-1)-np.log(1e-6))/300, np.log(1e-5)]
 # First order reaction coefficient [ln(1/h)]
-reac      = [np.log(1e-4), np.log(1), (np.log(1)-np.log(1e-4))/300, np.log(1e-3)]
+reac      = [np.log(1e-4), np.log(1), (np.log(1)-np.log(1e-4))/300, np.log(1e-2)]
 
 # Initial slider parameter (min, max, step, value) for sorption
 # Solid densitiy [kg/m3]
@@ -133,7 +155,8 @@ PVspan      = np.linspace(exp(pore_vol[0]),exp(pore_vol[1]),nT)
 # Numerical Crank-Nicholson-Scheme to determine concentrations
 for i in range(nT):
   c_intermed = transport(c_intermed,c0)
-  c_intermed = reactive_dispersion(c_intermed,disp_ini,dx,dt,nX,A_cn,b_cn,reac_ini,rf)
+  #c_intermed = reactive_dispersion(c_intermed,disp_ini,dx,dt,nX,A_cn,b_cn,reac_ini,rf)
+  c_intermed = reactive_dispersion_implicit(c_intermed,disp_ini,dx,dt,nX,A_cn,reac_ini,rf)
   # no sorption here
   # store results
   for j in range(nX):
@@ -141,6 +164,8 @@ for i in range(nT):
   print("We are "+ str(i+1) + " of " + str(nT) + " into the computation")
 
 
-np.savetxt('Initial_Data.csv', c_tot_array, delimiter=';')
+np.savetxt('Initial_Data_reaction_implicit.csv', c_tot_array, delimiter=';')
 
 # first run took 55 mins
+# fully implicit (700) 25 min
+# fully implicit (500) 
