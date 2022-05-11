@@ -80,7 +80,7 @@
           Bottom Cell: \( (-s) c_{N-1}^{k+1} + (1 +s + r) c_{N}^{k+1} = c_{N}^{k} \) 
         </div>
       </div>
-      With s = \( \frac{D * dt}{dx^2} \) and r = \( \lambda *dt \), dispersion coefficient D, first-order rate constant \( \lambda \), time step dt, distance between cells dx, number of cells N, index of cell i and timestep k
+      With s = \( \mathrm{\frac{D * dt}{dx^2}} \) and r = \( \lambda *\mathrm{dt} \), dispersion coefficient D, first-order rate constant \( \lambda \), time step dt, distance between cells dx, number of cells N, index of cell i and timestep k
     </div>
     <div class="row">
       <div class="main" style="flex: 7">

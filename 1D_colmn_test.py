@@ -1,7 +1,7 @@
 from cmath import nan
 from logging import PlaceHolder
 from bokeh.layouts import column, row
-from bokeh.models import ColumnDataSource,FuncTickFormatter, CustomJS, Slider, Panel, Range1d, Tabs, Button, RangeSlider, RadioButtonGroup, PointDrawTool
+from bokeh.models import ColumnDataSource,FuncTickFormatter, CustomJS, Slider, Select, Panel, Range1d, Tabs, Button, RangeSlider, RadioButtonGroup, PointDrawTool
 from bokeh.plotting import Figure, output_file, show
 from bokeh.events import Tap, Pan
 import numpy as np
@@ -108,6 +108,26 @@ source2 = ColumnDataSource(data = dict(x2=PVspan, y2=c_t))
 source3 = ColumnDataSource(data = dict(xBTC = [col_len[3]/2], yBTC = [0]))
 sourcetot = ColumnDataSource(data = dict(c_tot_array = c_tot_array))
 
+# widgets for unit selection
+r_us = Select(title="Reaction Unit:", value="1/h", options=["1/s", "1/min", "1/h", "1/d"])
+D_us = Select(title="Dispersion Unit:", value="m2/h", options=["m2/s", "m2/min", "m2/h", "m2/d"])
+fl_us = Select(title="Flow Rate Unit:", value="mL/h", options=["mL/min", "m3/s", "mL/h", "L/h"])
+
+r_us_dict = { '1/s':    FuncTickFormatter(code="""  return (Math.exp(tick)/3600).toExponential(2).toString()+' [1/s]'"""),
+              '1/min':  FuncTickFormatter(code="""  return (Math.exp(tick)/60).toExponential(2).toString()+' [1/min]'"""),
+              '1/h':    FuncTickFormatter(code="""  return (Math.exp(tick)).toExponential(2).toString()+' [1/h]'"""),
+              '1/d':    FuncTickFormatter(code="""  return (Math.exp(tick)*24).toExponential(2).toString()+' [1/d]'""")}
+
+D_us_dict = { 'm2/s':    FuncTickFormatter(code="""  return (Math.exp(tick)/3600).toExponential(2).toString()+' [m2/s]'"""),
+              'm2/min':  FuncTickFormatter(code="""  return (Math.exp(tick)/60).toExponential(2).toString()+' [m2/min]'"""),
+              'm2/h':    FuncTickFormatter(code="""  return (Math.exp(tick)).toExponential(2).toString()+' [m2/h]'"""),
+              'm2/d':    FuncTickFormatter(code="""  return (Math.exp(tick)*24).toExponential(2).toString()+' [m2/d]'""")}              
+
+fl_us_dict = {'m3/s':     FuncTickFormatter(code="""  return (tick/3600/1000/1000).toExponential(2)+' [m3/s]'"""),
+              'L/h':      FuncTickFormatter(code="""  return (tick/1000).toFixed(4)+' [L/h]'"""),
+              'mL/min':   FuncTickFormatter(code="""  return (tick/60).toFixed(2)+' [mL/min]'"""),
+              'mL/h':     FuncTickFormatter(code="""  return (tick).toFixed(1)+' [mL/h]'""")}
+
 # Concentrtation Plot
 COLp = Figure(min_height = 400, y_axis_label='c(t)/c0',
             x_axis_label='x [m]',sizing_mode="stretch_both")
@@ -146,11 +166,11 @@ col_len_sl    = Slider(title = "Column length", start = col_len[0], end = col_le
 col_rad_sl    = Slider(title = "Column radius", start = col_rad[0], end = col_rad[1], step = col_rad[2], value = col_rad[3],
                     format=FuncTickFormatter(code="""return tick.toFixed(3)+' [m]'"""),sizing_mode="stretch_width")
 disp_sl       = Slider(title = "Dispersion coefficient ", start = disp[0], end = disp[1], step = disp[2], value =disp[3],
-                    format=FuncTickFormatter(code="""return Math.exp(tick).toExponential(1).toString()+' [m2/h]'"""),sizing_mode="stretch_width")
+                    format=D_us_dict['m2/h'],sizing_mode="stretch_width")
 reac_sl       = Slider(title = "Reaction coefficient ", start = reac[0], end = reac[1], step = reac[2], value = reac[3],
-                    format=FuncTickFormatter(code="""return Math.exp(tick).toExponential(1).toString()+' [1/h]'"""),sizing_mode="stretch_width")
+                    format=r_us_dict['1/h'],sizing_mode="stretch_width")
 flow_sl       = Slider(title = "Flow Rate", start = flow[0], end = flow[1], step = flow[2], value = flow[3],
-                    format=FuncTickFormatter(code="""return tick.toFixed(1)+' [mL/h]'"""),sizing_mode="stretch_width")
+                    format=fl_us_dict['mL/h'],sizing_mode="stretch_width")
 poros_sl      = Slider(title = "Porosity", start = poros[0], end = poros[1], step = poros[2], value = poros[3],
                     format=FuncTickFormatter(code="""return tick.toFixed(2)+' [-]'"""),sizing_mode="stretch_width")
 # sliders for numerical model
@@ -231,6 +251,12 @@ callback = CustomJS(args=dict(
                             rg_ST = rg_ST,
                             pulse_inj_sl = pulse_inj_sl,
                             BTCp = BTCp,
+                            r_us = r_us,
+                            D_us = D_us,
+                            fl_us = fl_us,
+                            r_dict = r_us_dict,
+                            D_dict = D_us_dict,
+                            fl_dict = fl_us_dict,
                             computebutton = computebutton
                             ),
     code=cbCode)
@@ -253,12 +279,18 @@ pulse_inj_sl.js_on_change('value', callback)
 rg_CP.js_on_change('active',callback)
 rg_CP.js_on_click(callback)
 rg_ST.js_on_change('active',callback)
+r_us.js_on_event(Tap, callback)
+D_us.js_on_event(Tap, callback)
+fl_us.js_on_event(Tap, callback)
+r_us.js_on_event('value', callback)
+D_us.js_on_event('value', callback)
+fl_us.js_on_event('value', callback)
 # Make a button that needs to be pressed in order to compute numerical model?
 COLp.js_on_event(Tap, callback)
 COLp.js_on_event(Pan, callback)
 
 layout1 = column(rg_CP,rg_ST,timestep_sl,col_len_sl,col_rad_sl,reac_sl,disp_sl,flow_sl,poros_sl,pulse_inj_sl,sizing_mode="stretch_width")
-layout2 = column(rho_s_sl,Kd_sl,Kads_sl,s_max_sl,K_Fr_sl,Fr_n_sl,computebutton, savebutton1, savebutton2, sizing_mode="stretch_width")
+layout2 = column(rho_s_sl,Kd_sl,Kads_sl,s_max_sl,K_Fr_sl,Fr_n_sl,r_us,D_us,fl_us,computebutton, savebutton1, savebutton2, sizing_mode="stretch_width")
 
 pulse_inj_sl.visible = False
 Kads_sl.visible = False

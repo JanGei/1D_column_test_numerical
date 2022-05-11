@@ -167,7 +167,7 @@ for (let i = 0; i < nT; i++) {  //needs to be nT
   //var c_array = reactive_dispersion(c_array,Dis,dx_CN,dt_CN,nX,A_cn,B_CN,reac,rf)
   var c_array = reactive_dispersion_fully_implicit(c_array,Dis,dx_CN,dt_CN,nX,A_cn,reac,rf)
   }
-  console.log("We made it here " + (i+1) + " out of " + nT + " times")
+  console.log((i+1) + " out of " + nT + " computational steps have been perfromed")
 
     // Sorption
     if (1 == 1) {

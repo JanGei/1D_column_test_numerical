@@ -91,6 +91,13 @@ if (rg_CPval==0) {
 } else {
   pulse_inj_sl.visible = true
 }
+// Displaying correct units
+var r_format  = r_dict[r_us.value]
+var D_format  = D_dict[D_us.value]
+var fl_format = fl_dict[fl_us.value]
+reac_sl.format = r_format
+disp_sl.format = D_format
+flow_sl.format = fl_format
 
 source1.change.emit();
 source2.change.emit();
