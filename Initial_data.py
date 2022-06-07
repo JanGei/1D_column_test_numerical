@@ -56,31 +56,29 @@ def reactive_dispersion(c_arr,Disp, dx, dt, nX, A_cn, b_cn, k, rf):
   res = np.linalg.solve(A_cn,b_cn)
   return res
 
-def reactive_dispersion_implicit(c_arr,Disp, dx, dt, nX, A_cn, k, rf):
-  dt_sub = dt / rf
-  s = Disp*dt_sub/dx**2
-  r = -k * dt_sub 
+def reactive_dispersion_implicit(c_arr,Disp, dx, dt, nX, A_cn, k):
+  s = Disp*dt/dx**2
+  r = -k * dt 
 
-  for j in range(rf):
-    for i in range(nX):
-      # Left hand side matrix A_CN
-      if (i > 0 and i < nX-1):
-        A_cn[i][i-1]  = - s
-        A_cn[i][i]    = 1 + 2*s - r
-        A_cn[i][i+1]  = - s
-      elif (i == 0):
-        A_cn[i][i]    = 1 + s - r
-        A_cn[i][i+1]  = - s
-      elif (i == nX-1):
-        A_cn[i][i-1]  = - s
-        A_cn[i][i]    = 1 + s - r
+  for i in range(nX):
+    # Left hand side matrix A_CN
+    if (i > 0 and i < nX-1):
+      A_cn[i][i-1]  = - s
+      A_cn[i][i]    = 1 + 2*s - r
+      A_cn[i][i+1]  = - s
+    elif (i == 0):
+      A_cn[i][i]    = 1 + s - r
+      A_cn[i][i+1]  = - s
+    elif (i == nX-1):
+      A_cn[i][i-1]  = - s
+      A_cn[i][i]    = 1 + s - r
 
   res = np.linalg.solve(A_cn,c_arr)
   return res
 
 # Initial slider parameters (min, max, step, value)
 # Pore Volume [-]
-pore_vol  = [np.log(0.001), np.log(7), (np.log(7)-np.log(0.001)) / 1000, np.log(0.5)]
+pore_vol  = [np.log(0.001), np.log(10), (np.log(10)-np.log(0.001)) / 1000, np.log(0.5)]
 # Column radius [m]
 col_rad   = [0.005, 0.2, 0.0001, 0.05]
 # Flow rate [ml/h]
@@ -115,8 +113,8 @@ poros_ini   = poros[3]                                      # [-]
 col_len_ini = col_len[3]                                    # [m]
 col_rad_ini = col_rad[3]                                    # [m]
 flow_ini    = flow[3]/1000/1000/3600                        # [m3/s]     
-disp_ini    = exp(disp[3])                                  # [m2/s]
-reac_ini    = exp(reac[3])                                  # [1/s]
+disp_ini    = exp(disp[3])/3600                             # [m2/s]
+reac_ini    = exp(reac[3])/3600                             # [1/s]
 
 # Pore space in the column [m3]
 porespace   = col_len_ini * math.pi * col_rad_ini**2 * poros_ini
@@ -156,7 +154,8 @@ PVspan      = np.linspace(exp(pore_vol[0]),exp(pore_vol[1]),nT)
 for i in range(nT):
   c_intermed = transport(c_intermed,c0)
   #c_intermed = reactive_dispersion(c_intermed,disp_ini,dx,dt,nX,A_cn,b_cn,reac_ini,rf)
-  c_intermed = reactive_dispersion_implicit(c_intermed,disp_ini,dx,dt,nX,A_cn,reac_ini,rf)
+  c_intermed = reactive_dispersion_implicit(c_intermed,disp_ini,dx,dt,nX,A_cn,reac_ini)
+
   # no sorption here
   # store results
   for j in range(nX):
@@ -164,8 +163,5 @@ for i in range(nT):
   print("We are "+ str(i+1) + " of " + str(nT) + " into the computation")
 
 
-np.savetxt('Initial_Data_reaction_implicit.csv', c_tot_array, delimiter=';')
-
-# first run took 55 mins
-# fully implicit (700) 25 min
-# fully implicit (500) 
+np.savetxt('Initial_Data.csv', c_tot_array, delimiter=';')
+ 

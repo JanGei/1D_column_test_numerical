@@ -20,15 +20,15 @@ os.chdir(os.path.dirname(sys.argv[0]))
 
 # Initial slider parameters (min, max, step, value)
 # Pore Volume [-]
-pore_vol  = [0, 7, 7/700, 0.5] #THIS IS HARDCODED
+pore_vol  = [0, 10, 0.01, 0.5] #THIS IS HARDCODED
 # Column radius [m]
 col_rad   = [0.005, 0.2, 0.0001, 0.05]
 # Flow rate [ml/h]
 flow      = [1, 50, 0.1, 10]
 # Porosity [-]
 poros     = [0.01, 1, 0.01, 0.5]
-# Duration of pulse injection [min]
-puls_inj  = [30, 43200, 30, 18000]
+# Duration of pulse injection [s]
+puls_inj  = [30, 360000, 30, 18000]
 # Column length [m]
 col_len   = [0.01, 0.5, 0.001, 0.2]
 # Dispersion coefficient [ln(m2/h)]
@@ -94,7 +94,7 @@ x           = np.linspace(0,col_len[3],nX)
 # Subdividing the duration of the experiment into nT equally long parts
 PVspan      = np.linspace(pore_vol[0],pore_vol[1],nT)
 
-c_tot_array = np.loadtxt("Initial_Data_reaction2.csv", delimiter = ";", dtype= float)
+c_tot_array = np.loadtxt("Initial_Data.csv", delimiter = ";", dtype= float)
 
 # index of closest time 
 idx_x = (np.abs(PVspan - pore_vol[3])).argmin()

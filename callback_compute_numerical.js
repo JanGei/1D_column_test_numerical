@@ -44,14 +44,12 @@ function reactive_dispersion(c_arr,Disp, dx_CN, dt_CN, nX, A_cn, b_cn, k, rf){
   return c_arr
 }
 
-function reactive_dispersion_fully_implicit(c_arr,Disp, dx_CN, dt_CN, nX,  A_cn, k, rf){
-  const dt_sub = dt_CN/rf
+function reactive_dispersion_fully_implicit(c_arr,Disp, dx_CN, dt_CN, nX,  A_cn, k){
   // Coefficient for dispersion
-  var p1 = Disp*dt_sub/dx_CN**2
+  var p1 = Disp*dt_CN/dx_CN**2
   // Coefficient for first order reaction
-  var p2 = k * dt_sub 
+  var p2 = k * dt_CN 
   
-  for (let j = 0; j < rf; j++) {
     for (let i = 0; i < nX; i++) {
       // Left hand side matrix A_cn
       if (i > 0 && i < nX-1) { // internal cells
@@ -67,7 +65,6 @@ function reactive_dispersion_fully_implicit(c_arr,Disp, dx_CN, dt_CN, nX,  A_cn,
       }
     }
     c_arr = math.lusolve(A_cn,c_arr)
-  }
   
   return c_arr
 }
@@ -165,7 +162,8 @@ for (let i = 0; i < nT; i++) {  //needs to be nT
   // Reactive Dispersion with Crank Nicholson scheme rf times
   if (1==1) {
   //var c_array = reactive_dispersion(c_array,Dis,dx_CN,dt_CN,nX,A_cn,B_CN,reac,rf)
-  var c_array = reactive_dispersion_fully_implicit(c_array,Dis,dx_CN,dt_CN,nX,A_cn,reac,rf)
+  // Fully implicit calculation does not need sub-timestepping
+  var c_array = reactive_dispersion_fully_implicit(c_array,Dis,dx_CN,dt_CN,nX,A_cn,reac)
   }
   console.log((i+1) + " out of " + nT + " computational steps have been perfromed")
 
