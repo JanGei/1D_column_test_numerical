@@ -14,11 +14,12 @@ from bokeh.embed import components
 import os
 import sys
 
-
 # Setting working sirectory to current folder
 os.chdir(os.path.dirname(sys.argv[0]))
 
 # Initial slider parameters (min, max, step, value)
+# !Note! The following slider + disp and reac have log(values) for bokeh visualization
+# To work with them use, e.g. exp(pore_vol[0])
 # Pore Volume [-]
 pore_vol  = [0, 10, 0.01, 0.5] #THIS IS HARDCODED
 # Column radius [m]
@@ -67,13 +68,13 @@ porevolume  = col_len_ini / velocity_ini
 # Normed inlet concentration
 c0 = 1
 
-# number of spatial nodes in the domain
+# Number of spatial nodes in the domain
 nX = 100
-# spatial discretization
+# Spatial discretization
 dx = col_len_ini/nX
 # Subdividing the column into 1000 equally long parts
 x  = np.linspace(0,col_len[3],nX)
-# temporal discretization
+# Temporal discretization
 dt = dx/velocity_ini
 # Neumann-Number
 Ne = 4 * disp_ini / velocity_ini / dx
@@ -81,38 +82,40 @@ Ne = 4 * disp_ini / velocity_ini / dx
 rf = ceil(Ne)
 # End time
 tN = pore_vol[1] * porevolume
-# number of temporal nodes
+# Number of temporal nodes
 nT = floor(tN/dt)
 
-# Initializing lists
+# Initializing concentration lists
 c_tot_array   = np.zeros((nX,nT))
 c_intermed    = np.zeros(nX)
+# Matrix A and vector b for numerical scheme
 A_cn          = np.zeros((nX,nX))
 b_cn          = np.zeros(nX)
-# Subdividing the column into 1000 equally long parts
-x           = np.linspace(0,col_len[3],nX)
 # Subdividing the duration of the experiment into nT equally long parts
-PVspan      = np.linspace(pore_vol[0],pore_vol[1],nT)
+PVspan        = np.linspace(pore_vol[0],pore_vol[1],nT)
 
+# Loading initial data to reduce initiation time
 c_tot_array = np.loadtxt("Initial_Data.csv", delimiter = ";", dtype= float)
 
-# index of closest time 
+# Index of closest time 
 idx_x = (np.abs(PVspan - pore_vol[3])).argmin()
 idx_t = (np.abs(x- col_len[3]/2)).argmin()
 
 c_x = c_tot_array[:,idx_x]
 c_t = c_tot_array[idx_t,:]
 
-source1 = ColumnDataSource(data = dict(x = x, y = c_x))
-source2 = ColumnDataSource(data = dict(x2=PVspan, y2=c_t))
-source3 = ColumnDataSource(data = dict(xBTC = [col_len[3]/2], yBTC = [0]))
+# Defining data sources with dictionary
+source1   = ColumnDataSource(data = dict(x = x, y = c_x))
+source2   = ColumnDataSource(data = dict(x2=PVspan, y2=c_t))
+source3   = ColumnDataSource(data = dict(xBTC = [col_len[3]/2], yBTC = [0]))
 sourcetot = ColumnDataSource(data = dict(c_tot_array = c_tot_array))
 
-# widgets for unit selection
+# Widgets for unit selection
 r_us = Select(title="Reaction Unit:", value="1/h", options=["1/s", "1/min", "1/h", "1/d"])
 D_us = Select(title="Dispersion Unit:", value="m2/h", options=["m2/s", "m2/min", "m2/h", "m2/d"])
 fl_us = Select(title="Flow Rate Unit:", value="mL/h", options=["mL/min", "m3/s", "mL/h", "L/h"])
 
+# Dictionaries for unit and value display
 r_us_dict = { '1/s':    FuncTickFormatter(code="""  return (Math.exp(tick)/3600).toExponential(2).toString()+' [1/s]'"""),
               '1/min':  FuncTickFormatter(code="""  return (Math.exp(tick)/60).toExponential(2).toString()+' [1/min]'"""),
               '1/h':    FuncTickFormatter(code="""  return (Math.exp(tick)).toExponential(2).toString()+' [1/h]'"""),
@@ -128,7 +131,7 @@ fl_us_dict = {'m3/s':     FuncTickFormatter(code="""  return (tick/3600/1000/100
               'mL/min':   FuncTickFormatter(code="""  return (tick/60).toFixed(2)+' [mL/min]'"""),
               'mL/h':     FuncTickFormatter(code="""  return (tick).toFixed(1)+' [mL/h]'""")}
 
-# Concentrtation Plot
+# Plot 1: Concentration within the column
 COLp = Figure(min_height = 400, y_axis_label='c(t)/c0',
             x_axis_label='x [m]',sizing_mode="stretch_both")
 COLp.line('x', 'y', source = source1, line_width = 3, line_alpha = 0.6, line_color = 'red')
@@ -138,12 +141,12 @@ COLp.yaxis.axis_label_text_font_size = "17pt"
 COLp.xaxis.major_label_text_font_size = "12pt"
 COLp.yaxis.major_label_text_font_size = "12pt" 
 
-# Initializing PointDrawTool
+# Initializing PointDrawTool --> Select location of BTC
 BTCcircle = COLp.diamond(x='xBTC',y = 'yBTC', source=source3 , size=18, color = 'black', fill_alpha=0.6 )
 COLp.add_tools(PointDrawTool(renderers=[BTCcircle], num_objects = 1))
 COLp.toolbar.active_multi = COLp.select_one(PointDrawTool)
 
-# BTC plot
+# Plot 2: BTC
 BTCp = Figure(min_height = 400, y_axis_label='c(t)/c0',
             x_axis_label='Pore Volume',sizing_mode="stretch_both")
 BTCp.line('x2', 'y2', source = source2, line_width = 3, line_alpha = 0.6, line_color = 'red')
@@ -156,7 +159,7 @@ BTCp.xaxis.major_label_text_font_size = "12pt"
 BTCp.yaxis.major_label_text_font_size = "12pt" 
 BTCp.title.text_font_size = "13pt"
 
-# sliders 
+# Sliders 
 timestep_sl   = Slider(start=pore_vol[0], end=pore_vol[1], value=pore_vol[3], step=pore_vol[1]/nT, title="Pore Volume (1PV = " + str("%.2f" %(porevolume/3600)) + " h)",
                     format=FuncTickFormatter(code="""return tick.toFixed(2)+' [PV]'"""),sizing_mode="stretch_width")
 pulse_inj_sl  = Slider(title = "Duration of Injection", start = puls_inj[0], end = puls_inj[1], step = puls_inj[2], value = puls_inj[3],
@@ -173,7 +176,7 @@ flow_sl       = Slider(title = "Flow Rate", start = flow[0], end = flow[1], step
                     format=fl_us_dict['mL/h'],sizing_mode="stretch_width")
 poros_sl      = Slider(title = "Porosity", start = poros[0], end = poros[1], step = poros[2], value = poros[3],
                     format=FuncTickFormatter(code="""return tick.toFixed(2)+' [-]'"""),sizing_mode="stretch_width")
-# sliders for numerical sorption
+# Sliders for numerical sorption
 rho_s_sl      = Slider(title = "Solid Density", start = rho_s[0], end = rho_s[1], step = rho_s[2], value = rho_s[3],
                     format=FuncTickFormatter(code="""return (tick/1000).toFixed(2)+' [kg/L]'"""),sizing_mode="stretch_width")
 Kd_sl         = Slider(title = "Linear Partinioning Coefficient", start = Kd[0], end = Kd[1], step = Kd[2], value = Kd[3],
@@ -187,16 +190,20 @@ K_Fr_sl       = Slider(title = "Freundlich Sorption Parameter", start = K_Fr[0],
 Fr_n_sl       = Slider(title = "Freundlich n", start = Fr_n[0], end = Fr_n[1], step = Fr_n[2], value = Fr_n[3],
                     format=FuncTickFormatter(code="""return tick.toFixed(2)+' [L/kg]'"""),sizing_mode="stretch_width")
 
+# 2 options to choose between continuous and pulse injection, as well as linear and no sorption
 Labels2 = ["Continuous Injection", "Pulse Injection"]
 Labels3 = ["Linear Sorption", "Langmuir Sorption", "Freundlich Sorption"]
 
 rg_CP = RadioButtonGroup(labels = Labels2, active = 0)
 rg_ST = RadioButtonGroup(labels = Labels3, active = 0)
 
+# Button to compute the numerical model
 computebutton = Button(label="Compute Numerical Model", button_type="success",sizing_mode="stretch_width")
 
+# Accessing JavaScript code, see file callback.js
 with open ('callback_compute_numerical.js', 'r') as file2:
   cbCode_numerical = file2.read()
+# Callback for interactive code via JS with initial data
 callback_compute_numerical = CustomJS(args=dict(
                             sourcetot = sourcetot,
                             PVspan = pore_vol[1],
@@ -222,6 +229,7 @@ callback_compute_numerical = CustomJS(args=dict(
                             ),
     code=cbCode_numerical)
 
+# Callback to trigger computation of the numerical model
 computebutton.js_on_click(callback_compute_numerical)
 
 with open ('callback.js', 'r') as file1:
@@ -261,13 +269,14 @@ callback = CustomJS(args=dict(
                             ),
     code=cbCode)
 
+# Buttons to save the numeric data, displayed in plots
 savebutton1 = Button(label="Save (Upper Plot)", button_type="success",sizing_mode="stretch_width")
 savebutton1.js_on_click(CustomJS(args=dict(source=source1),code=open(os.path.join(os.path.dirname(__file__),"download.js")).read()))
 savebutton2 = Button(label="Save (Lower Plot)", button_type="success",sizing_mode="stretch_width")
 savebutton2.js_on_click(CustomJS(args=dict(source=source2),code=open(os.path.join(os.path.dirname(__file__),"download.js")).read()))
 #credit: https://stackoverflow.com/questions/31824124/is-there-a-way-to-save-bokeh-data-table-content
 
-# callbacks for widgets
+# Callbacks for widgets
 timestep_sl.js_on_change('value', callback)
 col_len_sl.js_on_change('value', callback)
 col_rad_sl.js_on_change('value', callback)
@@ -288,18 +297,18 @@ fl_us.js_on_event('value', callback)
 COLp.js_on_event(Tap, callback)
 COLp.js_on_event(Pan, callback)
 
+# Layout of the page
 layout1 = column(rg_CP,rg_ST,timestep_sl,col_len_sl,col_rad_sl,reac_sl,disp_sl,flow_sl,poros_sl,pulse_inj_sl,sizing_mode="stretch_width")
 layout2 = column(rho_s_sl,Kd_sl,Kads_sl,s_max_sl,K_Fr_sl,Fr_n_sl,r_us,D_us,fl_us,computebutton, savebutton1, savebutton2, sizing_mode="stretch_width")
+tab1 = Panel(child=COLp, title="ADRE")
+plots = Tabs(tabs=[tab1])
 
+# Hiding sliders initially (refer to callback.js to see visibility conditions)
 pulse_inj_sl.visible = False
 Kads_sl.visible = False
 s_max_sl.visible = False
 K_Fr_sl.visible = False
 Fr_n_sl.visible = False
-
-tab1 = Panel(child=COLp, title="ADRE")
-plots = Tabs(tabs=[tab1])
-
 
 # Work with template in order to modify html code
 script, (div1, div2, div3, div4) = components((COLp,layout1,BTCp,layout2))

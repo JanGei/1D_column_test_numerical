@@ -1,5 +1,8 @@
+// This callback computes the numerical model
+
+// Function: Transport by moving concentrations by once cell
 function transport(c_arr,c_in){
-  // Move concentrations by one cell (Cr == 1)
+  // Move concentrations by one cell (Courant number Cr == 1)
   for (let i = 0; i < c_arr.length; i++){
     c_arr[c_arr.length-i-1] = c_arr[c_arr.length-i-2]
   }
@@ -9,77 +12,89 @@ function transport(c_arr,c_in){
   return c_arr
 }
 
+// Function: Reactive Dispersion with sub-timestepping
 function reactive_dispersion(c_arr,Disp, dx_CN, dt_CN, nX, A_cn, b_cn, k, rf){
+  // Sub-timestep
   const dt_sub = dt_CN/rf
-  // Coefficient for dispersion
+  // Adjusted coefficient for dispersion
   var p1 = Disp*dt_sub/dx_CN**2
-  // Coefficient for first order reaction
+  // Adjusted coefficient for first order reaction
   var p2 = k * dt_sub 
 
+  // Crank-Nicholson scheme for computation
   for (let j = 0; j < rf; j++) {
     for (let i = 0; i < nX; i++) {
       // Left hand side matrix A_cn
-      if (i > 0 && i < nX-1) { // internal cells
+      // Internal cells
+      if (i > 0 && i < nX-1) { 
         A_cn[i][i-1]  = - p1/2
         A_cn[i][i]    = 1 + p1
         A_cn[i][i+1]  = - p1/2
-      } else if (i == 0) { // inflow cell 
+      // Inflow cell 
+      } else if (i == 0) { 
         A_cn[i][i]    = 1 + p1/2 
         A_cn[i][i+1]  = - p1/2
-      } else if (i == nX-1) { // outflow cell
+      // Outflow cell
+      } else if (i == nX-1) { 
         A_cn[i][i-1]  = - p1/2 
         A_cn[i][i]    = 1 + p1/2 
       }
-      // Right hand side vector 
-      if (i > 0 && i < nX-1) { // internal cells
+      // Right hand side vector b_cn
+      // Internal cells
+      if (i > 0 && i < nX-1) { 
         b_cn[i]   = p1/2*c_arr[i-1] + (1-p1)* c_arr[i] + p1/2*c_arr[i+1]
-      } else if (i == 0) { // inflow cell
+      // Inflow cell
+      } else if (i == 0) { 
         b_cn[i]    = (1-p1/2)*c_arr[i] + p1/2*c_arr[i+1]
-      } else if (i == nX-1) { // outflow cell
+      // Outflow cell
+      } else if (i == nX-1) { 
         b_cn[i]    = (1-p1/2)*c_arr[i] + p1/2*c_arr[i-1]
       }
     }
-    c_arr = math.lusolve(A_cn,b_cn) //this gives us an array with an array for each entry
+    
+    c_arr = math.lusolve(A_cn,b_cn) 
   }
   return c_arr
 }
 
+// Function: Fully implicit reactive dispersion
+// No sub-timestepping needed --> faster
 function reactive_dispersion_fully_implicit(c_arr,Disp, dx_CN, dt_CN, nX,  A_cn, k){
   // Coefficient for dispersion
   var p1 = Disp*dt_CN/dx_CN**2
   // Coefficient for first order reaction
   var p2 = k * dt_CN 
-  
+
+  // Crank-Nicholson scheme for computation
     for (let i = 0; i < nX; i++) {
       // Left hand side matrix A_cn
-      if (i > 0 && i < nX-1) { // internal cells
+      // Internal cells
+      if (i > 0 && i < nX-1) { 
         A_cn[i][i-1]  = - p1
         A_cn[i][i]    = 1 + 2*p1 +p2
         A_cn[i][i+1]  = - p1
-      } else if (i == 0) { // inflow cell 
+      // Inflow cell
+      } else if (i == 0) {  
         A_cn[i][i]    = 1 + p1 + p2
-        A_cn[i][i+1]  = - p1 
-      } else if (i == nX-1) { // outflow cell
+        A_cn[i][i+1]  = - p1
+      // Outflow cell 
+      } else if (i == nX-1) { 
         A_cn[i][i-1]  = - p1 
         A_cn[i][i]    = 1 + p1 + p2
       }
     }
+
     c_arr = math.lusolve(A_cn,c_arr)
-  
+
   return c_arr
 }
 
-function total_conc(c,rg_SType,sorbed,rho_s,poros,K_Fr,Fr_n) {
-  // This function sums up the concentration in the aqueous and solid phase per node
+// Function: Sum up concentration in aqueous and solid phase
+function total_conc(c,rg_SType,sorbed,rho_s,poros) {
+  // Initialize intermediate concentration array
   var c_tot_intermed = Array(c.length).fill(0)
-  if (rg_SType == 2) {
-    for (let i = 0; i < c.length; i++) {
-      c_tot_intermed[i] = (rho_s*(1-poros)*K_Fr*c[i]**(Fr_n-1)+ poros)*c[i]
-    }
-  } else {
-    for (let i = 0; i < c.length; i++) {
-      c_tot_intermed[i] = sorbed[i]*rho_s*(1-poros) + poros*c[i]
-    }
+  for (let i = 0; i < c.length; i++) {
+    c_tot_intermed[i] = sorbed[i]*rho_s*(1-poros) + poros*c[i]
   }
   return c_tot_intermed
 }
@@ -188,7 +203,7 @@ for (let i = 0; i < nT; i++) {  //needs to be nT
           }
     
       } else if (rg_SType == 2) { // Freundlich Sorption
-          var c_tot_Fr = total_conc(c_array,rg_SType,s_array,rho_s,poros,K_Fr,Fr_n)
+          var c_tot_Fr = total_conc(c_array,rg_SType,s_array,rho_s,poros)
           
           for (let j = 0; j < c_array.length; j++) {
             // Picard Iteration: Guess that everything is in the aqueous phase
@@ -209,10 +224,9 @@ for (let i = 0; i < nT; i++) {  //needs to be nT
   }
 }
 
-console.log(c_tot_array)
 
-// entering results in big source
-// extracting big data source (next 12 lines are not really needed)
+
+// Updating source
 var sourcetot_array = sourcetot.data.c_tot_array
 
 for (let i = 0; i < nX; i++) {
@@ -221,6 +235,7 @@ for (let i = 0; i < nX; i++) {
   }
 }
 
+// Updating time slider
 timestep_sl.title = 'Pore Volume (1PV =' + (PV/3600).toFixed(2) +'h)';
 
 
