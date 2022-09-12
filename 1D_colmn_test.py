@@ -1,4 +1,5 @@
 from cmath import nan
+from ctypes.wintypes import PUSHORT
 from logging import PlaceHolder
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource,FuncTickFormatter, CustomJS, Slider, Select, Panel, Range1d, Tabs, Button, RangeSlider, RadioButtonGroup, PointDrawTool
@@ -10,7 +11,6 @@ import math
 from math import exp, erfc, sqrt, ceil, floor
 import csv
 from bokeh.embed import components
-#from scipy.stats import qmc
 import os
 import sys
 
@@ -143,7 +143,7 @@ BTCcircle = COLp.diamond(x='xBTC',y = 'yBTC', source=source3 , size=18, color = 
 COLp.add_tools(PointDrawTool(renderers=[BTCcircle], num_objects = 1))
 COLp.toolbar.active_multi = COLp.select_one(PointDrawTool)
 
-# BTC plot -- Now consistent with JS side
+# BTC plot
 BTCp = Figure(min_height = 400, y_axis_label='c(t)/c0',
             x_axis_label='Pore Volume',sizing_mode="stretch_both")
 BTCp.line('x2', 'y2', source = source2, line_width = 3, line_alpha = 0.6, line_color = 'red')
@@ -173,7 +173,7 @@ flow_sl       = Slider(title = "Flow Rate", start = flow[0], end = flow[1], step
                     format=fl_us_dict['mL/h'],sizing_mode="stretch_width")
 poros_sl      = Slider(title = "Porosity", start = poros[0], end = poros[1], step = poros[2], value = poros[3],
                     format=FuncTickFormatter(code="""return tick.toFixed(2)+' [-]'"""),sizing_mode="stretch_width")
-# sliders for numerical model
+# sliders for numerical sorption
 rho_s_sl      = Slider(title = "Solid Density", start = rho_s[0], end = rho_s[1], step = rho_s[2], value = rho_s[3],
                     format=FuncTickFormatter(code="""return (tick/1000).toFixed(2)+' [kg/L]'"""),sizing_mode="stretch_width")
 Kd_sl         = Slider(title = "Linear Partinioning Coefficient", start = Kd[0], end = Kd[1], step = Kd[2], value = Kd[3],
@@ -285,7 +285,6 @@ fl_us.js_on_event(Tap, callback)
 r_us.js_on_event('value', callback)
 D_us.js_on_event('value', callback)
 fl_us.js_on_event('value', callback)
-# Make a button that needs to be pressed in order to compute numerical model?
 COLp.js_on_event(Tap, callback)
 COLp.js_on_event(Pan, callback)
 
