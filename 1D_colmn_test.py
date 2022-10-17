@@ -47,9 +47,9 @@ K_ads     = [0.01, 10, 0.01, 1]
 # Specific sorption capacity [mol/kg]
 s_max     = [0.0001, 1, 0.0001, 0.1]
 # Freundlich Sorption Parameter [mmol^(1-n)*L^(n) / kg]
-K_Fr      = [0.01, 10, 0.01, 1]
+K_Fr      = [0.001, 2, 0.001, 0.01]
 # Frfeundlich n [-]
-Fr_n      = [1, 2, 0.01, 1.3]
+Fr_n      = [0.001, 2, 0.001, 1.3]
 
 # Parameters for plot initialization + adjusting units
 poros_ini   = poros[3]                                      # [-]
@@ -72,8 +72,8 @@ c0 = 1
 nX = 100
 # Spatial discretization
 dx = col_len_ini/nX
-# Subdividing the column into 1000 equally long parts
-x  = np.linspace(0,col_len[3],nX)
+# Subdividing the column into 100 equally long parts
+x  = np.linspace(col_len[3]*0.0005,col_len[3],nX)
 # Temporal discretization
 dt = dx/velocity_ini
 # Neumann-Number
@@ -278,13 +278,6 @@ savebutton2.js_on_click(CustomJS(args=dict(source=source2),code=open(os.path.joi
 
 # Callbacks for widgets
 timestep_sl.js_on_change('value', callback)
-col_len_sl.js_on_change('value', callback)
-col_rad_sl.js_on_change('value', callback)
-reac_sl.js_on_change('value', callback)
-disp_sl.js_on_change('value', callback)
-flow_sl.js_on_change('value', callback)
-poros_sl.js_on_change('value', callback)
-pulse_inj_sl.js_on_change('value', callback)
 rg_CP.js_on_change('active',callback)
 rg_CP.js_on_click(callback)
 rg_ST.js_on_change('active',callback)

@@ -34,6 +34,11 @@ var rg_CPval = rg_CP.active
 var xBTC  = x3[0];   
 var tPV   = timestep_sl.value
 
+// Discretize space (upper plot) and time (lower plot)
+for (let j = 0; j < x.length; j++) {
+  x[j] = -0.0005*col_len + 1.0005*col_len/x.length * j;
+}
+
 // Fix point draw tool to x-axis and limit its range on x-axis
 y3[0] = 0
 if (x3[0]<=0.0001) {

@@ -224,10 +224,10 @@ for (let i = 0; i < nT; i++) {  //needs to be nT
   }
 }
 
-
-
 // Updating source
 var sourcetot_array = sourcetot.data.c_tot_array
+
+// COLp.xrange = ({"start": -0.005*col_len, "end": 1.005*col_len})
 
 for (let i = 0; i < nX; i++) {
   for (let j = 0; j < nT; j++) {

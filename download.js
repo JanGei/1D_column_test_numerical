@@ -1,7 +1,7 @@
 function table_to_csv(source) {
     const columns = Object.keys(source.data)
     const nrows = source.get_length()
-    const lines = [columns.join(',')]
+    const lines = [columns.join(';')]
 
     for (let i = 0; i < nrows; i++) {
         let row = [];
